@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WorkiReview — ワーホリ口コミプラットフォーム</title>
+  <meta name="description" content="オーストラリアのワーキングホリデー日本人向け 仕事・家の口コミプラットフォーム" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans JP', 'DM Sans', sans-serif; background: #FAFAF9; color: #1C1917; }
+    #root { min-height: 100vh; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const CITIES = ["Sydney", "Melbourne", "Brisbane", "Gold Coast", "Perth", "Adelaide", "Cairns", "Darwin", "Tasmania", "Canberra", "Broome"];
+    const ROOM_TYPES = ["シングル", "ツイン", "シェア", "マスター", "リビング", "スタジオ"];
+
+    const SEED_BUSINESSES = [
+      { id: "b1", name: "Sunny Share House", city: "Sydney", category: "house", area: "Surry Hills", street: "Crown St", station: "Central", rent: "$180/week", roomType: "シェア", createdAt: "2025-12-01" },
+      { id: "b2", name: "Melbourne CBD Apartment", city: "Melbourne", category: "house", area: "CBD", street: "Swanston St", station: "Flinders Street", rent: "$200/week", roomType: "ツイン", createdAt: "2025-11-20" },
+      { id: "b3", name: "Gold Coast Farm Work", city: "Gold Coast", category: "job", area: "Bundaberg", street: "", station: "", rent: "", roomType: "", createdAt: "2025-10-15" },
+      { id: "b4", name: "Sakura Japanese Restaurant", city: "Sydney", category: "job", area: "Chatswood", street: "Victoria Ave", station: "Chatswood", rent: "", roomType: "", createdAt: "2025-11-01" },
+      { id: "b5", name: "Brisbane Backpackers Lodge", city: "Brisbane", category: "house", area: "Fortitude Valley", street: "Brunswick St", station: "Fortitude Valley", rent: "$160/week", roomType: "シングル", createdAt: "2025-09-10" },
+      { id: "b6", name: "Perth Strawberry Farm", city: "Perth", category: "job", area: "Wanneroo", street: "", station: "", rent: "", roomType: "", createdAt: "2025-08-20" },
+      { id: "b7", name: "Cozy House Bondi", city: "Sydney", category: "house", area: "Bondi", street: "Campbell Pde", station: "Bondi Junction", rent: "$220/week", roomType: "マスター", createdAt: "2026-01-05" },
+      { id: "b8", name: "Oz Harvest Warehouse", city: "Sydney", category: "job", area: "Alexandria", street: "Bourke Rd", station: "Green Square", rent: "", roomType: "", createdAt: "2026-01-10" },
+    ];
+
+    const SEED_REVIEWS = [
+      { id: "r1", businessId: "b1", rating: 4, comment: "オーナーが親切で、日本人も多く住んでいるので安心。キッチンも広くて綺麗です。WiFiも問題なし。", createdAt: "2026-01-15" },
+      { id: "r2", businessId: "b1", rating: 3, comment: "立地は最高ですが、壁が薄くて音が気になります。退去時のクリーニング代は事前に確認した方がいいです。", createdAt: "2026-02-01" },
+      { id: "r3", businessId: "b2", rating: 5, comment: "CBD中心部で便利。オーナーの対応も迅速。ボンド返金もスムーズでした。おすすめ！", createdAt: "2026-01-20" },
+      { id: "r4", businessId: "b3", rating: 2, comment: "仕事量が不安定。ピッキングのスピードを要求されすぎる。セカンドビザ目的なら他を探した方がいい。", createdAt: "2025-12-10" },
+      { id: "r5", businessId: "b3", rating: 4, comment: "シーズン中は稼げます。宿泊付きで$150/week引かれますが、それでも残ります。スタッフもフレンドリー。", createdAt: "2026-01-25" },
+      { id: "r6", businessId: "b4", rating: 5, comment: "日本語環境で働きやすい。まかない付き。チップも分配してくれる。シフトも融通がきく。", createdAt: "2026-02-05" },
+      { id: "r7", businessId: "b4", rating: 4, comment: "忙しいけどスタッフの仲がいい。英語を使う機会は少ないけど、お金を貯めたい人にはいい。", createdAt: "2026-02-10" },
+      { id: "r8", businessId: "b5", rating: 3, comment: "値段は安いけど、共有スペースが汚れがち。ロケーションは便利。長期滞在にはちょっと厳しい。", createdAt: "2025-12-20" },
+      { id: "r9", businessId: "b6", rating: 1, comment: "約束された時給と違った。コントラクターを通すと手数料が高い。直接応募をおすすめします。", createdAt: "2025-11-15" },
+      { id: "r10", businessId: "b7", rating: 5, comment: "Bondiビーチ目の前！サーフィンする人には最高のロケーション。オーナーもリラックスした人で住みやすい。", createdAt: "2026-02-15" },
+      { id: "r11", businessId: "b8", rating: 4, comment: "ボランティア的な要素もありますが、英語環境で働けてローカルの友達もできました。履歴書にも書ける。", createdAt: "2026-02-20" },
+    ];
+
+    function Stars({ rating, size = 16, interactive = false, onChange }) {
+      return (
+        <div style={{ display: "flex", gap: 2 }}>
+          {[1, 2, 3, 4, 5].map(i => (
+            <span
+              key={i}
+              onClick={interactive ? () => onChange(i) : undefined}
+              style={{
+                cursor: interactive ? "pointer" : "default",
+                fontSize: size,
+                color: i <= rating ? "#F59E0B" : "#D1D5DB",
+                transition: "color 0.15s",
+                userSelect: "none",
+              }}
+            >★</span>
+          ))}
+        </div>
+      );
+    }
+
+    function avgRating(reviews) {
+      if (!reviews.length) return 0;
+      return reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+    }
+
+    function CategoryBadge({ category }) {
+      const isHouse = category === "house";
+      return (
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 4,
+          padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 600, letterSpacing: 0.5,
+          background: isHouse ? "#DBEAFE" : "#FEE2E2",
+          color: isHouse ? "#1E40AF" : "#991B1B",
+          textTransform: "uppercase",
+        }}>
+          {isHouse ? "🏠" : "💼"} {isHouse ? "House" : "Job"}
+        </span>
+      );
+    }
+
+    function App() {
+      const [businesses, setBusinesses] = useState(SEED_BUSINESSES);
+      const [reviews, setReviews] = useState(SEED_REVIEWS);
+      const [page, setPage] = useState("list");
+      const [selectedBiz, setSelectedBiz] = useState(null);
+      const [filterCity, setFilterCity] = useState("");
+      const [filterCategory, setFilterCategory] = useState("");
+      const [searchText, setSearchText] = useState("");
+      const [bizForm, setBizForm] = useState({ name: "", city: "Sydney", category: "house", area: "", street: "", station: "", rent: "", roomType: "シングル" });
+      const [reviewForm, setReviewForm] = useState({ rating: 5, comment: "" });
+      const [hoveredCard, setHoveredCard] = useState(null);
+
+      const filtered = useMemo(() => {
+        return businesses.filter(b => {
+          if (filterCity && b.city !== filterCity) return false;
+          if (filterCategory && b.category !== filterCategory) return false;
+          if (searchText && !b.name.toLowerCase().includes(searchText.toLowerCase()) && !b.area.toLowerCase().includes(searchText.toLowerCase())) return false;
+          return true;
+        });
+      }, [businesses, filterCity, filterCategory, searchText]);
+
+      const bizReviews = useMemo(() => {
+        if (!selectedBiz) return [];
+        return reviews.filter(r => r.businessId === selectedBiz.id).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }, [reviews, selectedBiz]);
+
+      const goDetail = (biz) => { setSelectedBiz(biz); setPage("detail"); };
+      const goList = () => { setPage("list"); setSelectedBiz(null); };
+      const goAddBiz = () => { setPage("addBiz"); setBizForm({ name: "", city: "Sydney", category: "house", area: "", street: "", station: "", rent: "", roomType: "シングル" }); };
+      const goAddReview = () => { setPage("addReview"); setReviewForm({ rating: 5, comment: "" }); };
+
+      const submitBiz = () => {
+        if (!bizForm.name.trim() || !bizForm.area.trim()) return;
+        const newBiz = { ...bizForm, id: "b" + Date.now(), createdAt: new Date().toISOString().slice(0, 10) };
+        setBusinesses(prev => [newBiz, ...prev]);
+        setSelectedBiz(newBiz);
+        setPage("detail");
+      };
+
+      const submitReview = () => {
+        if (!reviewForm.comment.trim()) return;
+        const newReview = { ...reviewForm, id: "r" + Date.now(), businessId: selectedBiz.id, createdAt: new Date().toISOString().slice(0, 10) };
+        setReviews(prev => [newReview, ...prev]);
+        setPage("detail");
+      };
+
+      const S = {
+        app: { minHeight: "100vh", background: "#FAFAF9", fontFamily: "'Noto Sans JP', 'DM Sans', sans-serif", color: "#1C1917" },
+        header: {
+          background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 50%, #0EA5E9 100%)",
+          padding: "0", position: "sticky", top: 0, zIndex: 100,
+          boxShadow: "0 2px 20px rgba(12,74,110,0.15)",
+        },
+        headerInner: {
+          maxWidth: 800, margin: "0 auto", padding: "16px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+        },
+        logo: { display: "flex", alignItems: "center", gap: 10, cursor: "pointer" },
+        logoIcon: { fontSize: 26 },
+        logoText: { fontSize: 20, fontWeight: 800, color: "#fff", letterSpacing: -0.5 },
+        logoSub: { fontSize: 10, color: "rgba(255,255,255,0.7)", fontWeight: 500, letterSpacing: 1, textTransform: "uppercase", marginTop: -2 },
+        addBtn: {
+          background: "#F59E0B", color: "#78350F", border: "none", borderRadius: 10,
+          padding: "10px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+          boxShadow: "0 2px 8px rgba(245,158,11,0.3)", transition: "all 0.2s",
+          display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit",
+        },
+        container: { maxWidth: 800, margin: "0 auto", padding: "0 20px 40px" },
+        hero: { padding: "32px 20px 28px", maxWidth: 800, margin: "0 auto", textAlign: "center" },
+        heroTitle: { fontSize: 22, fontWeight: 800, color: "#0C4A6E", marginBottom: 6, letterSpacing: -0.5 },
+        heroDesc: { fontSize: 13, color: "#64748B", lineHeight: 1.6 },
+        filterBar: {
+          display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20,
+          padding: "16px", background: "#fff", borderRadius: 14,
+          boxShadow: "0 1px 4px rgba(0,0,0,0.06)", border: "1px solid #E7E5E4",
+        },
+        input: {
+          flex: 1, minWidth: 140, padding: "10px 14px", borderRadius: 10,
+          border: "1px solid #D6D3D1", fontSize: 13, outline: "none",
+          background: "#FAFAF9", transition: "border 0.2s", fontFamily: "inherit",
+        },
+        select: {
+          padding: "10px 14px", borderRadius: 10, border: "1px solid #D6D3D1",
+          fontSize: 13, background: "#FAFAF9", outline: "none", cursor: "pointer",
+          fontFamily: "inherit", minWidth: 100,
+        },
+        card: {
+          background: "#fff", borderRadius: 14, padding: "20px",
+          border: "1px solid #E7E5E4", marginBottom: 12, cursor: "pointer",
+          transition: "all 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+        },
+        cardHover: { boxShadow: "0 4px 16px rgba(0,0,0,0.08)", borderColor: "#0EA5E9" },
+        cardName: { fontSize: 16, fontWeight: 700, marginBottom: 6, color: "#0C4A6E" },
+        cardMeta: { display: "flex", gap: 12, fontSize: 12, color: "#78716C", flexWrap: "wrap", alignItems: "center" },
+        detailHeader: {
+          background: "linear-gradient(135deg, #0C4A6E 0%, #0369A1 100%)",
+          borderRadius: 16, padding: "28px 24px", color: "#fff", marginTop: 20, marginBottom: 20,
+        },
+        detailName: { fontSize: 22, fontWeight: 800, marginBottom: 8 },
+        detailGrid: {
+          display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: 12, marginTop: 16,
+        },
+        detailItem: { background: "rgba(255,255,255,0.12)", borderRadius: 10, padding: "10px 14px" },
+        detailLabel: { fontSize: 10, textTransform: "uppercase", letterSpacing: 1, opacity: 0.7, marginBottom: 2 },
+        detailValue: { fontSize: 14, fontWeight: 600 },
+        reviewCard: {
+          background: "#fff", borderRadius: 12, padding: "18px 20px",
+          border: "1px solid #E7E5E4", marginBottom: 10,
+        },
+        reviewComment: { fontSize: 14, lineHeight: 1.7, color: "#44403C", marginTop: 8 },
+        reviewDate: { fontSize: 11, color: "#A8A29E", marginTop: 8 },
+        formSection: {
+          background: "#fff", borderRadius: 16, padding: "28px",
+          border: "1px solid #E7E5E4", marginTop: 20,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        },
+        formTitle: { fontSize: 18, fontWeight: 800, color: "#0C4A6E", marginBottom: 20 },
+        formGroup: { marginBottom: 16 },
+        formLabel: { display: "block", fontSize: 12, fontWeight: 600, color: "#57534E", marginBottom: 6, letterSpacing: 0.3 },
+        formInput: {
+          width: "100%", padding: "12px 14px", borderRadius: 10,
+          border: "1px solid #D6D3D1", fontSize: 14, outline: "none",
+          fontFamily: "inherit", background: "#FAFAF9", boxSizing: "border-box", transition: "border 0.2s",
+        },
+        formTextarea: {
+          width: "100%", padding: "12px 14px", borderRadius: 10,
+          border: "1px solid #D6D3D1", fontSize: 14, outline: "none",
+          fontFamily: "inherit", minHeight: 100, resize: "vertical",
+          background: "#FAFAF9", boxSizing: "border-box", lineHeight: 1.7,
+        },
+        formSelect: {
+          width: "100%", padding: "12px 14px", borderRadius: 10,
+          border: "1px solid #D6D3D1", fontSize: 14, outline: "none",
+          fontFamily: "inherit", background: "#FAFAF9", boxSizing: "border-box",
+        },
+        submitBtn: {
+          background: "linear-gradient(135deg, #0369A1, #0EA5E9)",
+          color: "#fff", border: "none", borderRadius: 12,
+          padding: "14px 28px", fontSize: 14, fontWeight: 700,
+          cursor: "pointer", boxShadow: "0 4px 12px rgba(14,165,233,0.3)",
+          transition: "all 0.2s", display: "flex", alignItems: "center", gap: 8, fontFamily: "inherit",
+        },
+        backBtn: {
+          background: "none", border: "1px solid #D6D3D1", borderRadius: 10,
+          padding: "8px 16px", fontSize: 13, cursor: "pointer", color: "#57534E",
+          fontWeight: 600, display: "flex", alignItems: "center", gap: 6,
+          fontFamily: "inherit", transition: "all 0.2s",
+        },
+        emptyState: { textAlign: "center", padding: "48px 20px", color: "#A8A29E" },
+        sectionTitle: { fontSize: 16, fontWeight: 700, color: "#1C1917", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 },
+        count: { background: "#F1F5F9", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600, color: "#64748B" },
+        row2: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 },
+      };
+
+      return (
+        <div style={S.app}>
+          {/* Header */}
+          <header style={S.header}>
+            <div style={S.headerInner}>
+              <div style={S.logo} onClick={goList}>
+                <span style={S.logoIcon}>🇦🇺</span>
+                <div>
+                  <div style={S.logoText}>WorkiReview</div>
+                  <div style={S.logoSub}>ワーホリ口コミ</div>
+                </div>
+              </div>
+              <button style={S.addBtn} onClick={goAddBiz}>
+                <span style={{ fontSize: 16 }}>＋</span> 登録する
+              </button>
+            </div>
+          </header>
+
+          {/* ===== LIST PAGE ===== */}
+          {page === "list" && (
+            <div style={S.container}>
+              <div style={S.hero}>
+                <div style={S.heroTitle}>ワーホリの失敗は、口コミで防げる。</div>
+                <div style={S.heroDesc}>仕事・家の口コミを検索できるワーホリ情報プラットフォーム</div>
+              </div>
+
+              <div style={S.filterBar}>
+                <input style={S.input} placeholder="🔍 名前・エリアで検索" value={searchText} onChange={e => setSearchText(e.target.value)} />
+                <select style={S.select} value={filterCity} onChange={e => setFilterCity(e.target.value)}>
+                  <option value="">すべての都市</option>
+                  {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+                <select style={S.select} value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+                  <option value="">すべて</option>
+                  <option value="house">🏠 House</option>
+                  <option value="job">💼 Job</option>
+                </select>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <span style={{ fontSize: 13, color: "#78716C", fontWeight: 500 }}>{filtered.length} 件の結果</span>
+              </div>
+
+              {filtered.length === 0 ? (
+                <div style={S.emptyState}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🔍</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>該当するビジネスがありません</div>
+                  <div style={{ fontSize: 13 }}>検索条件を変更してください</div>
+                </div>
+              ) : (
+                filtered.map(biz => {
+                  const bRevs = reviews.filter(r => r.businessId === biz.id);
+                  const avg = avgRating(bRevs);
+                  const isHovered = hoveredCard === biz.id;
+                  return (
+                    <div
+                      key={biz.id}
+                      style={{ ...S.card, ...(isHovered ? S.cardHover : {}) }}
+                      onClick={() => goDetail(biz)}
+                      onMouseEnter={() => setHoveredCard(biz.id)}
+                      onMouseLeave={() => setHoveredCard(null)}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                        <div>
+                          <div style={S.cardName}>{biz.name}</div>
+                          <div style={S.cardMeta}>
+                            <CategoryBadge category={biz.category} />
+                            <span>📍 {biz.city}{biz.area ? ` / ${biz.area}` : ""}</span>
+                            {biz.category === "house" && biz.rent && <span>💰 {biz.rent}</span>}
+                            {biz.category === "house" && biz.roomType && <span>🛏 {biz.roomType}</span>}
+                          </div>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <Stars rating={Math.round(avg)} size={14} />
+                          <div style={{ fontSize: 11, color: "#A8A29E", marginTop: 2 }}>
+                            {bRevs.length > 0 ? `${avg.toFixed(1)} (${bRevs.length}件)` : "レビューなし"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          )}
+
+          {/* ===== DETAIL PAGE ===== */}
+          {page === "detail" && selectedBiz && (
+            <div style={S.container}>
+              <div style={{ marginTop: 16 }}>
+                <button style={S.backBtn} onClick={goList}>← 一覧に戻る</button>
+              </div>
+
+              <div style={S.detailHeader}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                  <div>
+                    <CategoryBadge category={selectedBiz.category} />
+                    <div style={S.detailName}>{selectedBiz.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <Stars rating={Math.round(avgRating(bizReviews))} size={18} />
+                      <span style={{ fontSize: 14, opacity: 0.8 }}>
+                        {bizReviews.length > 0 ? `${avgRating(bizReviews).toFixed(1)} (${bizReviews.length}件のレビュー)` : "レビューなし"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div style={S.detailGrid}>
+                  <div style={S.detailItem}>
+                    <div style={S.detailLabel}>都市</div>
+                    <div style={S.detailValue}>{selectedBiz.city}</div>
+                  </div>
+                  {selectedBiz.area && (
+                    <div style={S.detailItem}>
+                      <div style={S.detailLabel}>エリア</div>
+                      <div style={S.detailValue}>{selectedBiz.area}</div>
+                    </div>
+                  )}
+                  {selectedBiz.street && (
+                    <div style={S.detailItem}>
+                      <div style={S.detailLabel}>通り</div>
+                      <div style={S.detailValue}>{selectedBiz.street}</div>
+                    </div>
+                  )}
+                  {selectedBiz.station && (
+                    <div style={S.detailItem}>
+                      <div style={S.detailLabel}>最寄り駅</div>
+                      <div style={S.detailValue}>{selectedBiz.station}</div>
+                    </div>
+                  )}
+                  {selectedBiz.rent && (
+                    <div style={S.detailItem}>
+                      <div style={S.detailLabel}>家賃</div>
+                      <div style={S.detailValue}>{selectedBiz.rent}</div>
+                    </div>
+                  )}
+                  {selectedBiz.roomType && (
+                    <div style={S.detailItem}>
+                      <div style={S.detailLabel}>部屋タイプ</div>
+                      <div style={S.detailValue}>{selectedBiz.roomType}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reviews */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <div style={S.sectionTitle}>
+                  💬 口コミ <span style={S.count}>{bizReviews.length}</span>
+                </div>
+                <button style={{ ...S.addBtn, padding: "8px 16px", fontSize: 12 }} onClick={goAddReview}>
+                  ✏️ レビューを書く
+                </button>
+              </div>
+
+              {bizReviews.length === 0 ? (
+                <div style={S.emptyState}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📝</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 4 }}>まだ口コミがありません</div>
+                  <div style={{ fontSize: 13 }}>最初のレビューを投稿しましょう</div>
+                </div>
+              ) : (
+                bizReviews.map(rev => (
+                  <div key={rev.id} style={S.reviewCard}>
+                    <Stars rating={rev.rating} size={14} />
+                    <div style={S.reviewComment}>{rev.comment}</div>
+                    <div style={S.reviewDate}>{rev.createdAt}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* ===== ADD BUSINESS PAGE ===== */}
+          {page === "addBiz" && (
+            <div style={S.container}>
+              <div style={{ marginTop: 16 }}>
+                <button style={S.backBtn} onClick={goList}>← 一覧に戻る</button>
+              </div>
+              <div style={S.formSection}>
+                <div style={S.formTitle}>📋 ビジネスを登録する</div>
+
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>カテゴリー *</label>
+                  <select style={S.formSelect} value={bizForm.category} onChange={e => setBizForm(f => ({ ...f, category: e.target.value }))}>
+                    <option value="house">🏠 House（家）</option>
+                    <option value="job">💼 Job（仕事）</option>
+                  </select>
+                </div>
+
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>名前 *</label>
+                  <input style={S.formInput} placeholder="例: Sunny Share House" value={bizForm.name} onChange={e => setBizForm(f => ({ ...f, name: e.target.value }))} />
+                </div>
+
+                <div style={S.row2}>
+                  <div style={S.formGroup}>
+                    <label style={S.formLabel}>都市 *</label>
+                    <select style={S.formSelect} value={bizForm.city} onChange={e => setBizForm(f => ({ ...f, city: e.target.value }))}>
+                      {CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div style={S.formGroup}>
+                    <label style={S.formLabel}>エリア *</label>
+                    <input style={S.formInput} placeholder="例: Surry Hills" value={bizForm.area} onChange={e => setBizForm(f => ({ ...f, area: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div style={S.row2}>
+                  <div style={S.formGroup}>
+                    <label style={S.formLabel}>通り</label>
+                    <input style={S.formInput} placeholder="例: Crown St" value={bizForm.street} onChange={e => setBizForm(f => ({ ...f, street: e.target.value }))} />
+                  </div>
+                  <div style={S.formGroup}>
+                    <label style={S.formLabel}>最寄り駅</label>
+                    <input style={S.formInput} placeholder="例: Central" value={bizForm.station} onChange={e => setBizForm(f => ({ ...f, station: e.target.value }))} />
+                  </div>
+                </div>
+
+                {bizForm.category === "house" && (
+                  <div style={S.row2}>
+                    <div style={S.formGroup}>
+                      <label style={S.formLabel}>家賃</label>
+                      <input style={S.formInput} placeholder="例: $180/week" value={bizForm.rent} onChange={e => setBizForm(f => ({ ...f, rent: e.target.value }))} />
+                    </div>
+                    <div style={S.formGroup}>
+                      <label style={S.formLabel}>部屋タイプ</label>
+                      <select style={S.formSelect} value={bizForm.roomType} onChange={e => setBizForm(f => ({ ...f, roomType: e.target.value }))}>
+                        {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <button style={S.submitBtn} onClick={submitBiz}>登録する →</button>
+              </div>
+            </div>
+          )}
+
+          {/* ===== ADD REVIEW PAGE ===== */}
+          {page === "addReview" && selectedBiz && (
+            <div style={S.container}>
+              <div style={{ marginTop: 16 }}>
+                <button style={S.backBtn} onClick={() => setPage("detail")}>← 詳細に戻る</button>
+              </div>
+              <div style={S.formSection}>
+                <div style={S.formTitle}>✏️ {selectedBiz.name} のレビュー</div>
+
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>評価 *</label>
+                  <Stars rating={reviewForm.rating} size={28} interactive onChange={r => setReviewForm(f => ({ ...f, rating: r }))} />
+                </div>
+
+                <div style={S.formGroup}>
+                  <label style={S.formLabel}>口コミ *</label>
+                  <textarea
+                    style={S.formTextarea}
+                    placeholder="体験を共有してください。良い点・悪い点など、率直なレビューが他のワーホリ仲間の役に立ちます。"
+                    value={reviewForm.comment}
+                    onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                  />
+                </div>
+
+                <button style={S.submitBtn} onClick={submitReview}>レビューを投稿する →</button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ textAlign: "center", padding: "32px 20px", fontSize: 12, color: "#A8A29E", borderTop: "1px solid #E7E5E4", marginTop: 40 }}>
+            WorkiReview — ワーホリ日本人のための口コミプラットフォーム
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
